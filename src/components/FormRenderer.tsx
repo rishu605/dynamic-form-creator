@@ -17,24 +17,21 @@ const FormRenderer: React.FC<FormRendererProps> = ({ fields }) => {
         switch (field.type) {
             case FieldType.TEXT:
                 return (
-                    <Paper key={index} elevation={3} style={{ padding: '16px', marginBottom: '24px' }}>
-                        <Typography variant="h6" gutterBottom>{field.title}</Typography>
+                    <Box key={index} mb={2}>
                         <TextField fieldDetails={field} />
-                    </Paper>
+                    </Box>
                 )
             case FieldType.NUMBER:
                 return (
-                    <Paper key={index} elevation={3} style={{ padding: '16px', marginBottom: '24px' }}>
-                        <Typography variant="h6" gutterBottom>{field.title}</Typography>
+                    <Box key={index} mb={2}>
                         <NumberField fieldDetails={field} />
-                    </Paper>
+                    </Box>
                 )
             case FieldType.SELECT:
                 return (
-                    <Paper key={index} elevation={3} style={{ padding: '16px', marginBottom: '24px' }}>
-                        <Typography variant="h6" gutterBottom>{field.title}</Typography>
+                    <Box key={index} mb={2}>
                         <SelectField fieldDetails={field} />
-                    </Paper>
+                    </Box>
                 )
             default:
                 return null
@@ -47,8 +44,10 @@ const FormRenderer: React.FC<FormRendererProps> = ({ fields }) => {
 
     return (
         <Container maxWidth="md" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
-            <Typography variant="h4" align="center" gutterBottom>Preview Form</Typography>
-            {renderFields}
+            <Paper elevation={3} style={{ padding: '32px' }}>
+                <Typography variant="h4" align="center" gutterBottom>Preview Form</Typography>
+                {renderFields}
+            </Paper>
         </Container>
     )
 }
