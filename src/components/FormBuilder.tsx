@@ -1,11 +1,9 @@
 import React, { useState, ChangeEvent } from "react"
 import { Field, FieldType } from "../types/FieldTypes"
-import { Container, Typography, Box, Paper, Button, TextField as MuiTextField, Checkbox, FormControlLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, IconButton } from "@mui/material"
+import { Container, Typography, Box, Paper, Button, TextField as MuiTextField, Checkbox, FormControlLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core"
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import EditIcon from '@mui/icons-material/Edit'
-import DeleteIcon from '@mui/icons-material/Delete'
 
 interface FormBuilderProps {
     setFields: React.Dispatch<React.SetStateAction<Field[]>>
@@ -23,6 +21,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         helperText: "",
         options: []
     })
+    const [formName, setFormName] = useState<string>("")
 
     const handleAddFieldClick = () => {
         setShowModal(true)
@@ -80,18 +79,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         setEditIndex(null)
     }
 
-    // const handleEditField = (index: number) => {
-    //     console.log("fields: ", index)
-    //     setNewField(fields[index])
-    //     setEditIndex(index)
-    //     setShowModal(true)
-    // }
-
-    // const handleDeleteField = (index: number) => {
-    //     console.log("Deleting field: ", index)
-    //     setFields(prevState => prevState.filter((_, i) => i !== index))
-    // }
-
     const handleDragEnd = (event: any) => {
         const { active, over } = event
         if (active.id !== over.id) {
@@ -101,6 +88,18 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                 return arrayMove(items, oldIndex, newIndex)
             })
         }
+    }
+
+    const handleSaveForm = () => {
+        const savedSchemas = JSON.parse(localStorage.getItem('savedSchemas') || '[]')
+        const newSchema = {
+            name: formName.trim(),
+            fields
+        }
+        savedSchemas.push(newSchema)
+        localStorage.setItem('savedSchemas', JSON.stringify(savedSchemas))
+        setFormName("")
+        setFields([])
     }
 
     const sensors = useSensors(
@@ -124,14 +123,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                 {...attributes}
                 {...listeners}
             >
-                {/* <Box position="absolute" top={0.2} right={5}>
-                    <IconButton onClick={() => handleEditField(index)} size="small">
-                        <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDeleteField(index)} size="small">
-                        <DeleteIcon />
-                    </IconButton>
-                </Box> */}
                 <MuiTextField label="Title" value={field.title} InputProps={{ readOnly: true }} fullWidth variant="outlined" margin="normal" />
                 <FormControlLabel control={<Checkbox checked={field.required} readOnly />} label="Required" />
                 <FormControlLabel control={<Checkbox checked={field.hidden} readOnly />} label="Hidden" />
@@ -147,6 +138,17 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <Container maxWidth="md" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
                 <Typography variant="h4" align="center" gutterBottom>New Form</Typography>
+                <Box display="flex" alignItems="center" mb={2}>
+                    <MuiTextField
+                        label="Form Name"
+                        value={formName}
+                        onChange={(e) => setFormName(e.target.value)}
+                        fullWidth
+                        variant="outlined"
+                        margin="normal"
+                    />
+                    <Button variant="contained" color="primary" onClick={handleSaveForm} style={{ marginLeft: '16px' }}>Save Form</Button>
+                </Box>
                 <SortableContext items={fields.map((field, index) => `${field.title}-${index}`)} strategy={verticalListSortingStrategy}>
                     {fields.map((field, index) => (
                         <SortableItem key={`${field.title}-${index}`} id={`${field.title}-${index}`} field={field} index={index} />

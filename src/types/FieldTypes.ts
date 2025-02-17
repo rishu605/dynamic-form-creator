@@ -1,4 +1,4 @@
-export type FormMode = "build" | "preview"
+export type FormMode = "build" | "preview" | "json"
 
 export enum FieldType {
     TEXT = "text",
@@ -15,4 +15,9 @@ export interface Field {
     options?: string[]
     minValue?: number
     maxValue?: number
+}
+
+export interface Schema {
+    name: string
+    fields: Field[]
 }

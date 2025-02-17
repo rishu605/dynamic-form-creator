@@ -1,0 +1,31 @@
+[
+    {
+        "name": "schema1",
+        "fields": [
+            {
+                "type": "text",
+                "title": "Name",
+                "required": true,
+                "hidden": false,
+                "helperText": "Enter your name"
+            },
+            {
+                "type": "number",
+                "title": "Age",
+                "required": true,
+                "hidden": false,
+                "helperText": "Enter your age",
+                "minValue": "18",
+                "maxValue": "99"
+            },
+            {
+                "type": "select",
+                "title": "Gender",
+                "required": true,
+                "hidden": false,
+                "helperText": "Select your gender",
+                "options": ["Male", "Female", "Other"]
+            }
+        ]
+    }
+]

@@ -25,6 +25,12 @@ const NumberField: React.FC<NumberFieldProps> = ({ fieldDetails }) => {
         setValue(newValue)
     }
 
+    const getHelperText = () => {
+        if (fieldDetails.minValue !== undefined && fieldDetails.maxValue !== undefined) {
+            return `Enter a number between ${fieldDetails.minValue} and ${fieldDetails.maxValue}`
+        }
+    }
+
     return (
         <Paper elevation={3} style={{ padding: '16px', marginBottom: '24px', borderRadius: '8px' }}>
             <Box mb={2}>
@@ -41,31 +47,9 @@ const NumberField: React.FC<NumberFieldProps> = ({ fieldDetails }) => {
                 value={value}
                 onChange={handleChange}
                 error={!!error}
-                helperText={error || fieldDetails.helperText}
+                helperText={error || getHelperText()}
                 sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' }, '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
             />
-            <Box mt={2}>
-                <MuiTextField
-                    label="Minimum Value"
-                    value={fieldDetails.minValue || ''}
-                    fullWidth
-                    variant="outlined"
-                    margin="dense"
-                    type="number"
-                    sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' }, '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
-                    disabled
-                />
-                <MuiTextField
-                    label="Maximum Value"
-                    value={fieldDetails.maxValue || ''}
-                    fullWidth
-                    variant="outlined"
-                    margin="dense"
-                    type="number"
-                    sx={{ '& .MuiInputLabel-root': { fontSize: '0.875rem' }, '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
-                    disabled
-                />
-            </Box>
         </Paper>
     )
 }
