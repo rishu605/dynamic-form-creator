@@ -7,12 +7,13 @@ export enum FieldType {
 }
 
 export interface Field {
+    id: string
     type: FieldType
     title: string
     required: boolean
     hidden: boolean
     helperText: string
-    options?: string[]
+    options?: string[] | undefined
     minValue?: number
     maxValue?: number
 }

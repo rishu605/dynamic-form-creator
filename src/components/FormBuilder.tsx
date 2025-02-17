@@ -1,19 +1,22 @@
-import React, { useState, ChangeEvent } from "react"
+import React, { useState, ChangeEvent, useEffect } from "react"
 import { Field, FieldType } from "../types/FieldTypes"
-import { Container, Typography, Box, Paper, Button, TextField as MuiTextField, Checkbox, FormControlLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material"
+import { Container, Typography, Box, Paper, TextField as MuiTextField, Checkbox, FormControlLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, SelectChangeEvent, Button } from "@mui/material"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core"
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+import { v4 as uuidv4 } from 'uuid'
+import { getFromLocalStorage, saveToLocalStorage } from "../api/forms"
+import useFetch from "../custom-hooks/useFetch" // Import the custom hook
+import { LoadingButton } from "@mui/lab" // Import LoadingButton
 
-interface FormBuilderProps {
-    setFields: React.Dispatch<React.SetStateAction<Field[]>>
-    fields: Field[]
-}
+interface FormBuilderProps {}
 
-const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
+const FormBuilder: React.FC<FormBuilderProps> = () => {
     const [showModal, setShowModal] = useState(false)
+    const [fields, setFields] = useState<Field[]>([])
     const [editIndex, setEditIndex] = useState<number | null>(null)
     const [newField, setNewField] = useState<Field>({
+        id: uuidv4(),
         type: FieldType.TEXT,
         title: "",
         required: false,
@@ -22,11 +25,17 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         options: []
     })
     const [formName, setFormName] = useState<string>("")
+    const { data: savedSchemas } = useFetch('savedSchemas')
+    const [isSaving, setIsSaving] = useState<boolean>(false) // State to manage loading indicator for save operation
 
     const handleAddFieldClick = () => {
         setShowModal(true)
         setEditIndex(null)
     }
+
+    useEffect(() => {
+        console.log("fields: ", fields)
+    }, [fields])
 
     const handleFieldChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: unknown }>) => {
         const { name, value, type, checked } = e.target as HTMLInputElement
@@ -36,7 +45,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         }))
     }
 
-    const handleFieldTypeChange = (e: ChangeEvent<{ name?: string; value: unknown }>) => {
+    const handleFieldTypeChange = (e: SelectChangeEvent<FieldType>) => {
         setNewField(prevState => ({
             ...prevState,
             type: e.target.value as FieldType
@@ -44,7 +53,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
     }
 
     const handleOptionChange = (index: number, value: string) => {
-        const newOptions = [...newField.options]
+        const newOptions = [...newField.options || []]
         newOptions[index] = value
         setNewField(prevState => ({
             ...prevState,
@@ -56,7 +65,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         if (newField.options && newField.options.length < 5) {
             setNewField(prevState => ({
                 ...prevState,
-                options: [...prevState.options, ""]
+                options: [...prevState.options || [], ""]
             }))
         }
     }
@@ -69,6 +78,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         }
         setShowModal(false)
         setNewField({
+            id: uuidv4(),
             type: FieldType.TEXT,
             title: "",
             required: false,
@@ -83,23 +93,30 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         const { active, over } = event
         if (active.id !== over.id) {
             setFields((items) => {
-                const oldIndex = items.findIndex(item => item.title === active.id)
-                const newIndex = items.findIndex(item => item.title === over.id)
+                const oldIndex = items.findIndex(item => item.id === active.id)
+                const newIndex = items.findIndex(item => item.id === over.id)
                 return arrayMove(items, oldIndex, newIndex)
             })
         }
     }
 
-    const handleSaveForm = () => {
-        const savedSchemas = JSON.parse(localStorage.getItem('savedSchemas') || '[]')
-        const newSchema = {
-            name: formName.trim(),
-            fields
+    const handleSaveForm = async () => {
+        setIsSaving(true)
+        try {
+            const schemas = savedSchemas || []
+            const newSchema = {
+                name: formName.trim(),
+                fields
+            }
+            schemas.push(newSchema)
+            await saveToLocalStorage('savedSchemas', schemas)
+            setFormName("")
+            setFields([])
+        } catch (error) {
+            console.error("Error saving form:", error)
+        } finally {
+            setIsSaving(false)
         }
-        savedSchemas.push(newSchema)
-        localStorage.setItem('savedSchemas', JSON.stringify(savedSchemas))
-        setFormName("")
-        setFields([])
     }
 
     const sensors = useSensors(
@@ -109,7 +126,21 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
         })
     )
 
-    const SortableItem = ({ id, field, index }: { id: string, field: Field, index: number }) => {
+    const handleDeleteField = (id: string) => {
+        console.log("id: ", id)
+        setFields(prevState => prevState.filter(field => field.id !== id))
+    }
+
+    const handleEditField = (id: string) => {
+        const fieldToEdit = fields.find(field => field.id === id)
+        if (fieldToEdit) {
+            setNewField(fieldToEdit)
+            setEditIndex(fields.findIndex(field => field.id === id))
+            setShowModal(true)
+        }
+    }
+
+    const SortableItem = ({ id, field, index, handleDelete, handleEdit }: { id: string, field: Field, index: number, handleDelete: (id: string) => void, handleEdit: (id: string) => void }) => {
         const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
         const style = {
             transform: CSS.Transform.toString(transform),
@@ -130,6 +161,16 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                 {field.options && field.options.map((option, index) => (
                     <MuiTextField key={index} label={`Option ${index + 1}`} value={option} InputProps={{ readOnly: true }} fullWidth variant="outlined" margin="normal" />
                 ))}
+                <Box display="flex" justifyContent="space-between" mt={2}>
+                    <Button variant="contained" color="primary" onPointerDown={(e) => {
+                        e.stopPropagation()
+                        handleEdit(field.id)
+                    }}>Edit</Button>
+                    <Button variant="contained" color="secondary" onPointerDown={(e) => {
+                        e.stopPropagation()
+                        handleDelete(field.id)
+                    }}>Delete</Button>
+                </Box>
             </Paper>
         )
     }
@@ -147,11 +188,19 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                         variant="outlined"
                         margin="normal"
                     />
-                    <Button variant="contained" color="primary" onClick={handleSaveForm} style={{ marginLeft: '16px' }}>Save Form</Button>
+                    <LoadingButton
+                        variant="contained"
+                        color="primary"
+                        onClick={handleSaveForm}
+                        loading={isSaving}
+                        style={{ marginLeft: '16px' }}
+                    >
+                        Save Form
+                    </LoadingButton>
                 </Box>
-                <SortableContext items={fields.map((field, index) => `${field.title}-${index}`)} strategy={verticalListSortingStrategy}>
+                <SortableContext items={fields.map((field) => field.id)} strategy={verticalListSortingStrategy}>
                     {fields.map((field, index) => (
-                        <SortableItem key={`${field.title}-${index}`} id={`${field.title}-${index}`} field={field} index={index} />
+                        <SortableItem key={field.id} id={field.id} field={field} index={index} handleDelete={handleDeleteField} handleEdit={handleEditField} />
                     ))}
                 </SortableContext>
                 <Button variant="contained" color="primary" onClick={handleAddFieldClick} style={{ marginTop: '16px' }}>Add Field</Button>
@@ -192,7 +241,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                             onChange={handleFieldTypeChange}
                             fullWidth
                             variant="outlined"
-                            margin="normal"
+                            margin="dense"
                         >
                             <MenuItem value={FieldType.TEXT}>Text</MenuItem>
                             <MenuItem value={FieldType.NUMBER}>Number</MenuItem>
@@ -204,7 +253,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                                 <MuiTextField
                                     label="Minimum Value"
                                     value={newField.minValue || ''}
-                                    onChange={(e) => setNewField(prevState => ({ ...prevState, minValue: e.target.value }))}
+                                    onChange={(e) => setNewField(prevState => ({ ...prevState, minValue: Number(e.target.value) }))}
                                     fullWidth
                                     variant="outlined"
                                     margin="normal"
@@ -213,7 +262,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ setFields, fields }) => {
                                 <MuiTextField
                                     label="Maximum Value"
                                     value={newField.maxValue || ''}
-                                    onChange={(e) => setNewField(prevState => ({ ...prevState, maxValue: e.target.value }))}
+                                    onChange={(e) => setNewField(prevState => ({ ...prevState, maxValue: Number(e.target.value) }))}
                                     fullWidth
                                     variant="outlined"
                                     margin="normal"
