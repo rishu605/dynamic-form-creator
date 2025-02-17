@@ -3,7 +3,7 @@ import { Field, FieldType, Schema } from "../types/FieldTypes"
 import TextField from "./TextField"
 import NumberField from "./NumberField"
 import SelectField from "./SelectField"
-import { Container, Typography, Box, Paper, Select, MenuItem, FormControl, InputLabel } from "@mui/material"
+import { Container, Typography, Box, Paper, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from "@mui/material"
 import { LoadingButton } from "@mui/lab"
 import useFetch from "../custom-hooks/useFetch" // Import the custom hook
 
@@ -12,7 +12,7 @@ const FormRenderer: React.FC = () => {
     const [selectedForm, setSelectedForm] = useState<string>("")
     const { data: savedSchemas, isLoading } = useFetch('savedSchemas')
 
-    const handleFormChange = (event: React.ChangeEvent<{ value: unknown }>) => {
+    const handleFormChange = (event: SelectChangeEvent<string>) => {
         const formName = event.target.value as string
         const form = savedSchemas.find((f: { name: string }) => f.name === formName)
         console.log("form: ", form)

@@ -1,17 +1,16 @@
 import React, { useState, ChangeEvent, useEffect } from "react"
 import { Field, FieldType } from "../types/FieldTypes"
-import { Container, Typography, Box, Paper, TextField as MuiTextField, Checkbox, FormControlLabel, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, SelectChangeEvent, Button } from "@mui/material"
+import { Container, Typography, Box, Button, TextField as MuiTextField, SelectChangeEvent } from "@mui/material"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core"
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { CSS } from "@dnd-kit/utilities"
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { v4 as uuidv4 } from 'uuid'
-import { getFromLocalStorage, saveToLocalStorage } from "../api/forms"
+import { saveToLocalStorage } from "../api/forms"
 import useFetch from "../custom-hooks/useFetch" // Import the custom hook
 import { LoadingButton } from "@mui/lab" // Import LoadingButton
+import FieldDialog from "./FieldDialog"
+import SortableItem from "./SortableItem"
 
-interface FormBuilderProps {}
-
-const FormBuilder: React.FC<FormBuilderProps> = () => {
+const FormBuilder: React.FC = () => {
     const [showModal, setShowModal] = useState(false)
     const [fields, setFields] = useState<Field[]>([])
     const [editIndex, setEditIndex] = useState<number | null>(null)
@@ -140,41 +139,6 @@ const FormBuilder: React.FC<FormBuilderProps> = () => {
         }
     }
 
-    const SortableItem = ({ id, field, index, handleDelete, handleEdit }: { id: string, field: Field, index: number, handleDelete: (id: string) => void, handleEdit: (id: string) => void }) => {
-        const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
-        const style = {
-            transform: CSS.Transform.toString(transform),
-            transition
-        }
-        return (
-            <Paper
-                ref={setNodeRef}
-                style={{ ...style, padding: '16px', marginBottom: '24px', cursor: 'move', position: 'relative' }}
-                elevation={3}
-                {...attributes}
-                {...listeners}
-            >
-                <MuiTextField label="Title" value={field.title} InputProps={{ readOnly: true }} fullWidth variant="outlined" margin="normal" />
-                <FormControlLabel control={<Checkbox checked={field.required} readOnly />} label="Required" />
-                <FormControlLabel control={<Checkbox checked={field.hidden} readOnly />} label="Hidden" />
-                <MuiTextField label="Helper Text" value={field.helperText} InputProps={{ readOnly: true }} fullWidth variant="outlined" margin="normal" />
-                {field.options && field.options.map((option, index) => (
-                    <MuiTextField key={index} label={`Option ${index + 1}`} value={option} InputProps={{ readOnly: true }} fullWidth variant="outlined" margin="normal" />
-                ))}
-                <Box display="flex" justifyContent="space-between" mt={2}>
-                    <Button variant="contained" color="primary" onPointerDown={(e) => {
-                        e.stopPropagation()
-                        handleEdit(field.id)
-                    }}>Edit</Button>
-                    <Button variant="contained" color="secondary" onPointerDown={(e) => {
-                        e.stopPropagation()
-                        handleDelete(field.id)
-                    }}>Delete</Button>
-                </Box>
-            </Paper>
-        )
-    }
-
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <Container maxWidth="md" style={{ paddingTop: '32px', paddingBottom: '32px' }}>
@@ -193,7 +157,8 @@ const FormBuilder: React.FC<FormBuilderProps> = () => {
                         color="primary"
                         onClick={handleSaveForm}
                         loading={isSaving}
-                        style={{ marginLeft: '16px' }}
+                        size="small"
+                        style={{ marginLeft: '16px', marginTop: "6px" }}
                     >
                         Save Form
                     </LoadingButton>
@@ -204,97 +169,17 @@ const FormBuilder: React.FC<FormBuilderProps> = () => {
                     ))}
                 </SortableContext>
                 <Button variant="contained" color="primary" onClick={handleAddFieldClick} style={{ marginTop: '16px' }}>Add Field</Button>
-                <Dialog open={showModal} onClose={() => setShowModal(false)}>
-                    <DialogTitle>{editIndex !== null ? "Edit Field" : "Add New Field"}</DialogTitle>
-                    <DialogContent>
-                        <MuiTextField
-                            label="Title"
-                            name="title"
-                            value={newField.title}
-                            onChange={handleFieldChange}
-                            fullWidth
-                            variant="outlined"
-                            margin="normal"
-                            required
-                        />
-                        <MuiTextField
-                            label="Helper Text"
-                            name="helperText"
-                            value={newField.helperText}
-                            onChange={handleFieldChange}
-                            fullWidth
-                            variant="outlined"
-                            margin="normal"
-                            required
-                        />
-                        <FormControlLabel
-                            control={<Checkbox name="required" checked={newField.required} onChange={handleFieldChange} />}
-                            label="Required"
-                        />
-                        <FormControlLabel
-                            control={<Checkbox name="hidden" checked={newField.hidden} onChange={handleFieldChange} />}
-                            label="Hidden"
-                        />
-                        <Select
-                            name="type"
-                            value={newField.type}
-                            onChange={handleFieldTypeChange}
-                            fullWidth
-                            variant="outlined"
-                            margin="dense"
-                        >
-                            <MenuItem value={FieldType.TEXT}>Text</MenuItem>
-                            <MenuItem value={FieldType.NUMBER}>Number</MenuItem>
-                            <MenuItem value={FieldType.SELECT}>Select</MenuItem>
-                        </Select>
-                        {newField.type === FieldType.NUMBER && (
-                            <Box mt={2}>
-                                <Typography variant="h6">Number Constraints</Typography>
-                                <MuiTextField
-                                    label="Minimum Value"
-                                    value={newField.minValue || ''}
-                                    onChange={(e) => setNewField(prevState => ({ ...prevState, minValue: Number(e.target.value) }))}
-                                    fullWidth
-                                    variant="outlined"
-                                    margin="normal"
-                                    type="number"
-                                />
-                                <MuiTextField
-                                    label="Maximum Value"
-                                    value={newField.maxValue || ''}
-                                    onChange={(e) => setNewField(prevState => ({ ...prevState, maxValue: Number(e.target.value) }))}
-                                    fullWidth
-                                    variant="outlined"
-                                    margin="normal"
-                                    type="number"
-                                />
-                            </Box>
-                        )}
-                        {newField.type === FieldType.SELECT && (
-                            <Box mt={2}>
-                                <Typography variant="h6">Options</Typography>
-                                {newField.options?.map((option, index) => (
-                                    <MuiTextField
-                                        key={index}
-                                        label={`Option ${index + 1}`}
-                                        value={option}
-                                        onChange={(e) => handleOptionChange(index, e.target.value)}
-                                        fullWidth
-                                        variant="outlined"
-                                        margin="normal"
-                                    />
-                                ))}
-                                {newField.options && newField.options.length < 5 && (
-                                    <Button variant="contained" color="secondary" onClick={handleAddOption} style={{ marginTop: '8px' }}>Add Option</Button>
-                                )}
-                            </Box>
-                        )}
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleSaveField} color="primary">{editIndex !== null ? "Save Changes" : "Save Field"}</Button>
-                        <Button onClick={() => setShowModal(false)} color="secondary">Cancel</Button>
-                    </DialogActions>
-                </Dialog>
+                <FieldDialog
+                    open={showModal}
+                    field={newField}
+                    editIndex={editIndex}
+                    onClose={() => setShowModal(false)}
+                    onSave={handleSaveField}
+                    onFieldChange={handleFieldChange}
+                    onFieldTypeChange={handleFieldTypeChange}
+                    onOptionChange={handleOptionChange}
+                    onAddOption={handleAddOption}
+                />
             </Container>
         </DndContext>
     )
