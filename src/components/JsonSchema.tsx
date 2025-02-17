@@ -1,4 +1,4 @@
-import { Button, TextField, Typography, Box, Paper } from "@mui/material";
+import { Button, TextField, Typography, Box, Paper, Snackbar, Alert } from "@mui/material";
 // import Grid2 from "@mui/material/Unstable_Grid2"; // ✅ Keeping Grid2 as per request
 import { useEffect, useState } from "react";
 import JSONInput from 'react-json-editor-ajrm';
@@ -13,7 +13,8 @@ const JsonSchema = () => {
     const [disable, setDisable] = useState<boolean>(false)
     const [nullCheck, setNullCheck] = useState<boolean>(false)
     const [isSavingSchema, setIsSavingSchema] = useState<boolean>(false)
-    const { data: savedSchemas, isLoading } = useFetch('savedSchemas')
+    const { data: savedSchemas } = useFetch('savedSchemas')
+    const [openSnackbar, setOpenSnackbar] = useState<boolean>(false) // State to manage Snackbar visibility
 
     const sendJson = async () => {
         setIsSavingSchema(true);
@@ -30,6 +31,8 @@ const JsonSchema = () => {
             await saveToLocalStorage('savedSchemas', schemas);
 
             setIsSavingSchema(false);
+            setSchemaName("")
+            setOpenSnackbar(true); // Show Snackbar on successful save
         } catch (err) {
             console.log(err);
             setIsSavingSchema(false);
@@ -52,6 +55,10 @@ const JsonSchema = () => {
         }
         setNullCheck(data.json === "");
         setJson(data.jsObject);
+    }
+
+    const handleCloseSnackbar = () => {
+        setOpenSnackbar(false);
     }
 
     return (
@@ -119,6 +126,11 @@ const JsonSchema = () => {
                     </form>
                 </Paper>
             </Box>
+            <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                    Form Schema Created Successfully
+                </Alert>
+            </Snackbar>
         </Box>
     )
 }

@@ -1,6 +1,6 @@
 import React, { useState, ChangeEvent, useEffect } from "react"
 import { Field, FieldType } from "../types/FieldTypes"
-import { Container, Typography, Box, Button, TextField as MuiTextField, SelectChangeEvent } from "@mui/material"
+import { Container, Typography, Box, Button, TextField as MuiTextField, SelectChangeEvent, Snackbar, Alert } from "@mui/material"
 import { DndContext, closestCenter, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core"
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { v4 as uuidv4 } from 'uuid'
@@ -26,6 +26,7 @@ const FormBuilder: React.FC = () => {
     const [formName, setFormName] = useState<string>("")
     const { data: savedSchemas } = useFetch('savedSchemas')
     const [isSaving, setIsSaving] = useState<boolean>(false) // State to manage loading indicator for save operation
+    const [openSnackbar, setOpenSnackbar] = useState<boolean>(false) // State to manage Snackbar visibility
 
     const handleAddFieldClick = () => {
         setShowModal(true)
@@ -111,6 +112,7 @@ const FormBuilder: React.FC = () => {
             await saveToLocalStorage('savedSchemas', schemas)
             setFormName("")
             setFields([])
+            setOpenSnackbar(true) // Show Snackbar on successful save
         } catch (error) {
             console.error("Error saving form:", error)
         } finally {
@@ -137,6 +139,10 @@ const FormBuilder: React.FC = () => {
             setEditIndex(fields.findIndex(field => field.id === id))
             setShowModal(true)
         }
+    }
+
+    const handleCloseSnackbar = () => {
+        setOpenSnackbar(false)
     }
 
     return (
@@ -180,6 +186,11 @@ const FormBuilder: React.FC = () => {
                     onOptionChange={handleOptionChange}
                     onAddOption={handleAddOption}
                 />
+                <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
+                    <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+                        Saved Form
+                    </Alert>
+                </Snackbar>
             </Container>
         </DndContext>
     )
